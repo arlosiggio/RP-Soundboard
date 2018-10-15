@@ -272,10 +272,17 @@ CAPI int sb_playButtonEx(const char* button)
 		if (arg1 <= 0)
 		{
 			//TODO search by name, too lazy right now
+			for (int i = 0; i < configModel->numSounds(); i++) {
+				const SoundInfo *sound = configModel->getSoundInfo(i);
+				if (sound->customText.contains(button, Qt::CaseInsensitive)) {
+					sb_playFile(*sound);
+					return 0;
+				}
+			}
 		}
 		else
 		{
-			const SoundInfo *sound = configModel->getSoundInfo(arg1);
+			const SoundInfo *sound = configModel->getSoundInfo(arg1-1);
 			if (sound)
 				sb_playFile(*sound);
 			else
@@ -426,4 +433,28 @@ CAPI int sb_parseCommand(char** args, int argc)
 
 	}
 	return 0;
+}
+
+CAPI const char* sb_getSoundList() {
+	QString ret;
+	for (int i = 0; i < configModel->numSounds(); i++) {
+		ret = ret + configModel->getSoundInfo(i)->customText + (i<configModel->numSounds()-1?", ":".");
+	}
+	const char* retcstr = (char*)malloc(ret.toUtf8().length() + 1);
+	strcpy((char*)retcstr, ret.toUtf8().data());
+	return retcstr;
+}
+CAPI const char* sb_getSoundListPage(int* pos) {
+	QString ret;
+	for (; (*pos) < configModel->numSounds(); (*pos)++) {
+		if ((ret + configModel->getSoundInfo(*pos)->customText + (*pos < configModel->numSounds() - 1 ? ", " : ".")).toUtf8().length() > 1024) {
+			break;
+		}
+		ret = (ret + configModel->getSoundInfo(*pos)->customText + (*pos<configModel->numSounds() - 1 ? ", " : "."));
+	}
+	if (configModel->numSounds() <= *pos)
+		(*pos) = 0;
+	const char* retcstr = (char*)malloc(ret.toUtf8().length() + 1);
+	strcpy((char*)retcstr, ret.toUtf8().data());
+	return retcstr;
 }

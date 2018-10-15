@@ -49,6 +49,8 @@ CAPI void sb_onStopTalking();
 CAPI void sb_onHotkeyPressed(const char *keyword);
 CAPI void sb_checkForUpdates();
 CAPI int sb_parseCommand(char**, int);
+CAPI const char* sb_getSoundList();
+CAPI const char* sb_getSoundListPage(int*);
 
 
 #define HOTKEY_STOP_ALL "stop_all"

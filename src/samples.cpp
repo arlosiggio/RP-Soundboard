@@ -322,7 +322,8 @@ int Sampler::fetchInputSamples(short *samples, int count, int channels, bool *fi
             m_state = eSILENT;
             if(finished)
                 *finished = true;
-            emit onStopPlaying();
+			m_inputFile->close();
+			emit onStopPlaying();
         }
 	}
 
@@ -351,6 +352,7 @@ int Sampler::fetchOutputSamples(short *samples, int count, int channels, const u
         if (m_sbPlayback.avail() == 0)
         {
             m_state = eSILENT;
+			m_inputFile->close();
             emit onStopPlaying();
         }
 	}

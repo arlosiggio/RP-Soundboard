@@ -16,6 +16,8 @@
 #include <string.h>
 #include <assert.h>
 #include <map>
+#include <qstring.h>
+#include <qregularexpression.h>
 
 #include "plugin.h"
 #include "main.h"
@@ -174,7 +176,6 @@ int ts3plugin_processCommand(uint64 serverConnectionHandlerID, const char* comma
 			args[argc++] = token; //append token, increase arg counter
 			token = strtok(NULL, " "); //try to read next token
 		}
-		free(tokanize);
 	}
 
 	//convert string to lower (if you know a lib you can use it)
@@ -186,8 +187,9 @@ int ts3plugin_processCommand(uint64 serverConnectionHandlerID, const char* comma
 			if (*b >= 'A' && *b <= 'Z')
 				*b |= ' '; // tuning on 6th bit, converting upper case letters to lower case (see ascii table)
 	}
-
-	return sb_parseCommand(args, argc);
+	int ret = sb_parseCommand(args, argc);
+	free(tokanize);
+	return ret;
 }
 
 /* Client changed current server connection handler */
@@ -477,7 +479,67 @@ void ts3plugin_onTalkStatusChangeEvent(uint64 serverConnectionHandlerID, int sta
 		sb_onStopTalking();
 }
 
+int ts3plugin_onTextMessageEvent(uint64 serverConnectionHandlerID, anyID targetMode, anyID toID, anyID fromID, const char* fromName, const char* fromUniqueIdentifier, const char* message, int ffIgnored)
+{
+	/*
+	char* args[3]; // <[conf] <snd>|<stop>> -> max 2, 3+ == error
+	char* token; //last strtok result
+	int argc = 0; //number of arguments
+	
+	char* tokanize = strdup(command); //create working copy of command for strtok that is not const
+	if (tokanize != NULL)
+	{
+		token = strtok((char*)tokanize, " ");
+		while (token != NULL && argc < 3) //read next token, but not more than 3
+		{
+			args[argc++] = token; //append token, increase arg counter
+			token = strtok(NULL, " "); //try to read next token
+		}
+	}
 
+	//convert string to lower (if you know a lib you can use it)
+	for (int a = 0; a<argc; a++)
+	{
+		char* b = args[argc];
+		for (; *b != 0; b++)
+			//assuming ascii encoding, turning on the 6th bit (value equals space) will convert it to lower case
+			if (*b >= 'A' && *b <= 'Z')
+				*b |= ' '; // tuning on 6th bit, converting upper case letters to lower case (see ascii table)
+	}
+	int ret = sb_parseCommand(args, argc);
+	free(tokanize);
+	return ret;
+	*/
+	if (targetMode == TextMessageTarget_CHANNEL && message == strstr(message, "!sb")) {
+		char *localMessage = (char*)malloc(strlen(message) + strlen(fromName) + 3);
+		
+		free(localMessage);
+		QString command(message);
+		QRegularExpression regex("(!sb )((?<play>play )|(?<stop>stop)|(?<list>list)|(?<help>help))(?<sound>.*$)", QRegularExpression::CaseInsensitiveOption);
+		QRegularExpressionMatch match = regex.match(command);
+		if (match.capturedStart("play") != -1) {
+			if (sb_playButtonEx(match.captured("sound").toLower().toUtf8().data())) {
+				ts3Functions.requestSendChannelTextMsg(serverConnectionHandlerID, "No se encontro el sonido", toID, NULL);
+			}
+		} else if (match.capturedStart("stop") != -1) {
+			sb_stopPlayback();
+		} else if (match.capturedStart("list") != -1) {
+			ts3Functions.printMessageToCurrentTab("LIST");
+			int i = 0;
+			do {
+				ts3Functions.printMessageToCurrentTab("WHILE != NULL");
+				const char * msg = sb_getSoundListPage(&i);
+				ts3Functions.requestSendChannelTextMsg(serverConnectionHandlerID, msg, toID, NULL);
+				free((void*)msg);
+			} while (i != 0);
+		} else if (match.capturedStart("help") != -1) {
+			ts3Functions.requestSendChannelTextMsg(serverConnectionHandlerID, "Comandos disponibles: !sb help, !sb play <sound>, !sb stop, !sb list", toID, NULL);
+		} else {
+			ts3Functions.requestSendChannelTextMsg(serverConnectionHandlerID, "Comando no soportado\r\nComandos disponibles: !sb help, !sb play <sound>, !sb stop, !sb list", toID, NULL);
+		}
+	}
+	return 0;
+}
 const char * getPluginID()
 {
 	return pluginID;
