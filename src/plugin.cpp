@@ -524,10 +524,8 @@ int ts3plugin_onTextMessageEvent(uint64 serverConnectionHandlerID, anyID targetM
 		} else if (match.capturedStart("stop") != -1) {
 			sb_stopPlayback();
 		} else if (match.capturedStart("list") != -1) {
-			ts3Functions.printMessageToCurrentTab("LIST");
 			int i = 0;
 			do {
-				ts3Functions.printMessageToCurrentTab("WHILE != NULL");
 				const char * msg = sb_getSoundListPage(&i);
 				ts3Functions.requestSendChannelTextMsg(serverConnectionHandlerID, msg, toID, NULL);
 				free((void*)msg);
